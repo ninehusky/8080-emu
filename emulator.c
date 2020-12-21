@@ -114,48 +114,102 @@ int disassemble(unsigned char* codebuffer, int pc) {
             opbytes = 3;
             break;
         case 0x22:
-            printf("STAX   D");
+            printf("SHLD, %02x%02x", opcode[2], opcode[1]);
             break;
         case 0x23:
-            printf("INX    D");
+            printf("INX    H");
             break;
         case 0x24:
-            printf("INR    D");
+            printf("INR    H");
             break;
         case 0x25:
-            printf("DCR    D");
+            printf("DCR    H");
             break;
         case 0x26:
-            printf("MVI    D, %02x", opcode[1]);
+            printf("MVI    H, %02x", opcode[1]);
             opbytes = 2;
             break;
         case 0x27:
-            printf("RAL");
+            printf("DAA");
             break;
         case 0x28:
             printf("NOP");
             break;
         case 0x29:
-            printf("DAD   D");
+            printf("DAD    H");
             break;
         case 0x2A:
-            printf("LDAX  D");
+            printf("LHLD, %02x%02x", opcode[2], opcode[1]);
+            opbytes = 3;
             break;
         case 0x2B:
-            printf("DCX   D");
+            printf("DCX    H");
             break;
         case 0x2C:
-            printf("INR   E");
+            printf("INR    L");
             break;
         case 0x2D:
-            printf("DCR   E");
+            printf("DCR    L");
             break;
         case 0x2E:
-            printf("MVI   E, %02x", opcode[1]);
+            printf("MVI    L, %02x", opcode[1]);
             opbytes = 2;
             break;
         case 0x2F:
-            printf("RAR");
+            printf("CMA"); 
+            break;
+        case 0x30:
+            printf("NOP"); 
+            break;
+        case 0x31:
+            printf("LXI    SP, %02x", opcode[1]);
+            opbytes = 2;
+            break;
+        case 0x32:
+            printf("STA, %02x%02x", opcode[2], opcode[1]);
+            opbytes = 3;
+            break;
+        case 0x33:
+            printf("INX    SP");
+            break;
+        case 0x34:
+            printf("INR    M");
+            break;
+        case 0x35:
+            printf("DCR    M");
+            break;
+        case 0x36:
+            printf("MVI    M, %02x", opcode[1]);
+            opbytes = 2;
+            break;
+        case 0x37:
+            printf("STC");
+            break;
+        case 0x38:
+            printf("NOP");
+            break;
+        case 0x39:
+            printf("DAD    SP");
+            break;
+        case 0x3A:
+            printf("LDA %02x%02x", opcode[2], opcode[1]);
+            opbytes = 3;
+            break;
+        case 0x3B:
+            printf("DCX SP");
+            break;
+        case 0x3C:
+            printf("INR    A");
+            break;
+        case 0x3D:
+            printf("DCR    A");
+            break;
+        case 0x3E:
+            printf("MVI    A, %02x", opcode[1]);
+            opbytes = 2;
+            break;
+        case 0x3F:
+            printf("CMC");
             break;
         default:
             printf("Error: opcode %04x not implemented.", *opcode);
