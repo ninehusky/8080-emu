@@ -29,7 +29,8 @@ int main (int argc, char** argv) {
     
     int pc = 0;
     while (pc < fsize) {
-        pc += disassemble(buffer, pc);
+        // pc += disassemble(buffer, pc);
+        pc += 1;
     }
 
     return 0;
