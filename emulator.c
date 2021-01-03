@@ -61,7 +61,7 @@ int parity(uint16_t result) {
         if (currentBit) {
             parityResult = !parityResult;
         }
-        result /= 10;
+        result >>= 1;
     }
     return parityResult;
 }
@@ -115,7 +115,7 @@ void setFlagsLogical(State8080* state, uint16_t result) {
  * CMC
  * Flips the carry bit.
  */
-void complementCarry(State8080* state) {
+void cmc(State8080* state) {
     state->cc.cy = !state->cc.cy;
 }
 
@@ -123,7 +123,7 @@ void complementCarry(State8080* state) {
  * STC
  * The Carry bit is set to one.
  */
-void setCarry(State8080* state) {
+void stc(State8080* state) {
     state->cc.cy = 1;
 }
 
@@ -131,7 +131,7 @@ void setCarry(State8080* state) {
  * INR
  * The specified register or memory byte is incremented by one.
  */
-void incrementRegisterOrMemory(State8080* state, uint8_t* byte) {
+void inr(State8080* state, uint8_t* byte) {
     uint16_t result = (uint16_t)byte + 0x1;
     setFlagsAdd(state, result); // TODO: call the add method instead
 }
@@ -140,7 +140,7 @@ void incrementRegisterOrMemory(State8080* state, uint8_t* byte) {
  * DCR
  * The specified register or memory byte is decremented by one.
  */
-void decrementRegisterOrMemory(State8080* state, uint8_t* byte) {
+void dcr(State8080* state, uint8_t* byte) {
     uint16_t result = (uint16_t)byte - 0x1;
     setFlagsSub(state, result);
 }
@@ -150,7 +150,7 @@ void decrementRegisterOrMemory(State8080* state, uint8_t* byte) {
  * Each bit of the contents of the accumulator is complemented, producing the
  * one's complement.
  */
-void complementAccumulator(uint8_t* accumulator) {
+void cma(uint8_t* accumulator) {
     *accumulator ^= *accumulator;
 }
 
@@ -158,7 +158,7 @@ void complementAccumulator(uint8_t* accumulator) {
  * DAA
  * Decimal adjust accumulator - unneeded by Space Invaders.
  */
-void decimalAdjustAccumulator() {
+void daa() {
     printf("Opcode implementation unneeded by Space Invaders\n");
 }
 
@@ -169,7 +169,7 @@ void decimalAdjustAccumulator() {
  * of the destination register; the source remains unchanged.
  * Flags affected: none
  */
-void movInstruction(uint8_t* src, uint8_t* dst) {
+void mov(uint8_t* src, uint8_t* dst) {
     uint8_t temp = *src;
     *src = *dst;
     *dst = temp;
@@ -181,7 +181,7 @@ void movInstruction(uint8_t* src, uint8_t* dst) {
  * registers. These are registers B and C, or registers D and E.
  * Flags affected: none
  */
-void storeAccumulator(State8080* state, uint8_t* reg1, uint8_t* reg2) {
+void stax(State8080* state, uint8_t* reg1, uint8_t* reg2) {
     uint8_t accumulatorValue = state->a;
     uint16_t address = ((*reg1 << 8) | *reg2);
     // mem[address] = accumulatorValue;
@@ -193,9 +193,161 @@ void storeAccumulator(State8080* state, uint8_t* reg1, uint8_t* reg2) {
  * The contents of the memory location addressed by registers B and C, or by registers D and E,
  * replace the contents of the accumulator.
  */
-void loadAccumulator(State8080* state, uint8_t* reg1, uint8_t* reg2) {
+void ldax(State8080* state, uint8_t* reg1, uint8_t* reg2) {
     uint16_t address = ((*reg1 << 8) | *reg2);
     // state->a = mem[address];
+}
+
+/* REGISTER OR MEMORY TO ACCUMULATOR INSTRUCTIONS */
+
+/*
+ * ADD
+ * The specified byte is added to the contents of the accumulator using two's complement
+ * arithmetic.
+ */
+void add(State8080* state, uint8_t byte) {
+    uint16_t result = (uint16_t)(byte) + (uint16_t)(state->a);
+    state->a = result & 0xff;
+    setFlagsAdd(state, result);
+}
+
+
+/*
+ * ADC
+ * The specified byte plus the content of the carry bit is added to the accumulator.
+ */
+void adc(State8080* state, uint8_t byte) {
+    uint16_t result = (uint16_t)(byte) + (uint16_t)(state->a) + state->cc.cy;
+    state->a = result & 0xff;
+    setFlagsAdd(state, result);
+}
+
+/*
+ * SUB
+ * The specified byte is subtracted from the accumulator using two's complement arithmetic.
+ */
+void sub(State8080* state, uint8_t byte) {
+    uint8_t byteComplement = ~byte;
+    uint16_t result = (uint16_t)(byteComplement) + (uint16_t)(state->a);
+    state->a = result & 0xff;
+    setFlagsSub(state, result); // TODO: double check this
+}
+
+/*
+ * SBB
+ * The Carry bit is internally added to the contents of the specified byte. This value is then
+ * subtracted from the accumulator using two's complement arithmetic.
+ */
+void sbb(State8080* state, uint8_t byte) {
+    uint8_t byteComplement = ~byte;
+    uint16_t result = (uint16_t)(byteComplement) + (uint16_t)(state->a) + state->cc.cy;
+    setFlagsSub(state, result); // TODO: check this too.
+}
+
+/*
+ * ANA
+ * The specified byte is logically ANDed bit by bit with the contents of the accumulator.
+ * The Carry bit is reset to zero.
+ */
+void ana(State8080* state, uint8_t byte) {
+    uint16_t result = (uint16_t)(state->a) & (uint16_t)(byte);
+    state->a = result & 0xff;
+    setFlagsLogical(state, result);
+}
+
+/*
+ * XRA
+ * The specified byte is EXCLUSIVE-ORed bit by bit with the contents of the accumulator. The Carry
+ * bit is reset to zero.
+ */
+void xra(State8080* state, uint8_t byte) {
+    uint16_t result = (uint16_t)(state->a) ^ (uint16_t)(byte);
+    state->a = result & 0xff;
+    setFlagsLogical(state, result);
+}
+
+/*
+ * ORA
+ * The specified byte is logically ORed bit by bit with the contents of the accumulator.
+ * The carry bit is reset to zero.
+ */
+void ora(State8080* state, uint8_t byte) {
+    uint16_t result = (uint16_t)(state->a) | (uint16_t)(byte);
+    state->a = result & 0xff;
+    setFlagsLogical(state, result);
+}
+
+/*
+ * CMP
+ * The specified byte is compared to the contents of the accumulator. The comparison is performed
+ * by internally subtracting the contents of REG from the accumulator (leaving both unchanged)
+ * and setting the condition bits according to the result. In particular, the Zero bit is
+ * set if the quantities are equal, and reset if they are unequal.
+ * Since a subtract operation is performed, the Carry bit will be
+ * set if there is no carry out of bit 7, indicating that the
+ * contents of REG are greater than the contents of the accumulator, and reset otherwise.
+ */
+void cmp(State8080* state, uint8_t byte) {
+    uint16_t result = (uint16_t)(state->a) - (uint16_t)(byte);
+    setFlagsSub(state, result);
+}
+
+/*  ROTATE ACCUMULATOR INSTRUCTIONS  */
+
+/*
+ * RLC
+ * The Carry bit is set equal to the highorder bit of the accumulator. The contents of the 
+ * accumulator are rotated one bit position to the left, with the highorder bit being transferred
+ * to the low-order bit position of the accumulator.
+ */
+void rlc(State8080* state) {
+    state->cc.cy = ((state->a & 0x80) == 0x80);
+    uint16_t result = (uint16_t)(state->a) << 0x1;
+    state->a = (result | (result & 0x80) >> 0x7) & 0xff;
+}
+
+/*
+ * RRC
+ * The carry bit is set equal to the low-order
+ * bit of the accumulator. The contents of the accumulator are
+ * rotated one bit position to the right, with the low-order bit
+ * being transferred to the high-order bit position of the
+ * accumulator.
+ */
+void rrc(State8080* state) {
+    state->cc.cy = state->a & 0x1; // low-order bit of the accumulator
+    state->a = (state->a >> 1 | state->cc.cy << 7);
+}
+
+/*
+ * RAL
+ * The contents of the accumulator are rotated one bit position to the left.
+ * The high-order bit of the accumulator replaces the
+ * Carry bit, while the Carry bit replaces the low-order bit of
+ * the accumulator.
+ */
+void ral(State8080* state) {
+    uint8_t tmp = state->cc.cy;
+    // cy = prev bit 7
+    state->cc.cy = (state->a >> 7);
+    // A = A << 1;
+    state->a <<= 1;
+    // bit 0 = prev cy
+    state->a |= tmp;
+}
+
+/*
+ * RAR
+ * The contents of the accumulator are rotated one bit position to the right.
+ * The low-order bit of the accumulator replaces the
+ * Carry bit, while the Carry bit replaces the high-order bit of
+ * the accumulator.
+ */
+void rar(State8080* state) {
+    uint8_t tmp = state->cc.cy;
+    state->cc.cy = state->a & 0x1;
+    state->a >>= 1;
+    state->a = (tmp << 7) | state->a;
 }
 
 

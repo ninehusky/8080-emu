@@ -15,4 +15,7 @@
  *
  * =====================================================================================
  */
+#ifndef EMULATORS_H_INCLUDED
+#define EMULATORS_H_INCLUDED
 int disassemble(unsigned char* codebuffer, int pc);
+#endif
